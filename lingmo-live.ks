@@ -96,7 +96,6 @@ gnome-remote-desktop
 gnome-session
 gnome-settings-daemon
 gnome-shell
-gnome-shell-extensions
 gnome-software
 gnome-system-monitor
 gnome-text-editor
