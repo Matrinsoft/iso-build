@@ -6,8 +6,8 @@ keyboard us
 timezone UTC
 rootpw --lock --iscrypted locked
 
-# Fedora 45 repository (system packages, base libraries, kernel, etc.)
-repo --name=fedora --baseurl=https://dl.fedoraproject.org/pub/fedora/linux/releases/45/Everything/x86_64/os/ --cost=200
+# Fedora 45 repository (branched/development stage, not yet formally released)
+repo --name=fedora --baseurl=https://dl.fedoraproject.org/pub/fedora/linux/development/45/Everything/x86_64/os/ --cost=200
 repo --name=fedora-updates --baseurl=https://dl.fedoraproject.org/pub/fedora/linux/updates/45/Everything/x86_64/ --cost=300
 
 # Lingmo OS repository (self-built packages, highest priority)
