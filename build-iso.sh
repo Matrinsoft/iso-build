@@ -48,7 +48,7 @@ createrepo_c "$REPO_DIR"
 
 echo "=== Building live ISO ==="
 # Point the kickstart's lingmo repo at the freshly built local repo
-sed -i "s|repo --name=lingmo --baseurl=.*|repo --name=lingmo --baseurl=file://$REPO_DIR --cost=1|" "$WORK_DIR/lingmo-live.ks"
+sed -i "s|repo --name=lingmo --baseurl=.*|repo --name=lingmo --baseurl=file://$REPO_DIR --cost=1 --nogpgcheck|" "$WORK_DIR/lingmo-live.ks"
 
 livecd-creator \
   --config="$WORK_DIR/lingmo-live.ks" \

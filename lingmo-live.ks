@@ -7,12 +7,12 @@ timezone UTC
 rootpw --lock --iscrypted locked
 
 # Fedora 45 repository (branched/development stage, not yet formally released)
-repo --name=fedora --baseurl=https://dl.fedoraproject.org/pub/fedora/linux/development/45/Everything/x86_64/os/ --cost=200
-repo --name=fedora-updates --baseurl=https://dl.fedoraproject.org/pub/fedora/linux/updates/45/Everything/x86_64/ --cost=300
+repo --name=fedora --baseurl=https://dl.fedoraproject.org/pub/fedora/linux/development/45/Everything/x86_64/os/ --cost=200 --nogpgcheck
+repo --name=fedora-updates --baseurl=https://dl.fedoraproject.org/pub/fedora/linux/updates/45/Everything/x86_64/ --cost=300 --nogpgcheck
 
 # Lingmo OS repository (self-built packages, highest priority)
 # NOTE: build-iso.sh generates /tmp/lingmo-repo and rewrites this line's baseurl.
-repo --name=lingmo --baseurl=file:///tmp/lingmo-repo --cost=1
+repo --name=lingmo --baseurl=file:///tmp/lingmo-repo --cost=1 --nogpgcheck
 
 %packages
 # --- Core system groups ---
