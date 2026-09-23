@@ -30,7 +30,13 @@ try:
 except Exception as e:
     pass')
   for url in $urls; do
-    curl -sSL -H "Authorization: Bearer $TOKEN" -o "$REPO_DIR/$(basename "$url")" "$url"
+    fname="$(basename "$url")"
+    curl -fsSL --retry 3 --retry-delay 2 -H "Authorization: Bearer $TOKEN" -o "$REPO_DIR/$fname" "$url" || {
+      echo "WARNING: failed to download $fname, skipping"; continue; }
+    # verify rpm is intact; drop corrupt/incomplete downloads
+    if ! rpm -K --nosignature "$REPO_DIR/$fname" >/dev/null 2>&1; then
+      echo "WARNING: invalid rpm $fname, removing"; rm -f "$REPO_DIR/$fname"; continue
+    fi
     count=$((count+1))
   done
 done < "$WORK_DIR/repos.txt"
