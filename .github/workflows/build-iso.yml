@@ -1,0 +1,69 @@
+name: Build ISO
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build ISO in Fedora container
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p iso-out
+          docker run --privileged --rm \
+            -v "$PWD:/src" \
+            -v "$PWD/iso-out:/out" \
+            -e GITHUB_TOKEN="$GITHUB_TOKEN" \
+            -w /src \
+            registry.fedoraproject.org/fedora:45 bash -c '
+              set -euo pipefail
+              df -h /
+              dnf install -y -q --setopt=install_weak_deps=False \
+                --setopt=minrate=0 --setopt=timeout=60 --setopt=retries=10 \
+                livecd-tools createrepo_c jq
+              bash build-iso.sh
+              ISO=$(ls -t *.iso | head -1)
+              echo "Produced ISO: $ISO ($(du -h "$ISO" | cut -f1))"
+              cp "$ISO" /out/
+            '
+
+      - name: Upload ISO to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ISO=$(ls -t iso-out/*.iso | head -1)
+          NAME="$(basename "$ISO" .iso)"
+          SIZE=$(stat -c %s "$ISO")
+          TAG="iso-$(date +%Y%m%d)"
+          echo "ISO: $NAME ($((SIZE/1024/1024)) MB)"
+
+          # create tag if missing
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
+
+          # GitHub release asset limit is 2 GiB; split if larger
+          if [ "$SIZE" -gt 2000000000 ]; then
+            echo "ISO > 2GB, splitting..."
+            mkdir -p iso-parts
+            split -b 1900M "$ISO" "iso-parts/${NAME}.iso.part"
+            parts=(iso-parts/*)
+            gh release create "$TAG" "${parts[@]}" --generate-notes || \
+              gh release upload "$TAG" "${parts[@]}" --clobber
+            echo "Uploaded $(ls iso-parts | wc -l) parts. Reassemble with: cat ${NAME}.iso.part* > ${NAME}.iso"
+          else
+            gh release create "$TAG" "$ISO" --generate-notes || \
+              gh release upload "$TAG" "$ISO" --clobber
+          fi
+          echo "Published release $TAG"
