@@ -74,7 +74,6 @@ geoclue2
 gjs
 glib-networking
 glib2
-glycin
 gnome-backgrounds
 gnome-bluetooth
 gnome-boxes
@@ -111,7 +110,6 @@ localsearch
 mutter
 nautilus
 PackageKit
-papers
 ptyxis
 rygel
 sane-backends
@@ -132,11 +130,11 @@ gnome-user-share
 loupe
 snapshot
 librsvg2
+papers
 
 # --- Extra desktop essentials ---
 gnome-terminal
 gnome-tweaks
-nautilus
 firefox
 network-manager-applet
 

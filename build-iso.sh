@@ -24,7 +24,8 @@ try:
     d=json.load(sys.stdin)
     for a in d.get("assets", []):
         n=a["name"]
-        if n.endswith(".rpm") and "debuginfo" not in n:
+        # only fc45 (or noarch) non-debug rpms; older builds may leave fc44/fc46 behind
+        if n.endswith(".rpm") and "debuginfo" not in n and "debugsource" not in n and (".fc45." in n or n.endswith(".noarch.rpm")):
             print(a["browser_download_url"])
 except Exception as e:
     pass')
