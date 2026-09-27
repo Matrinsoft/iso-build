@@ -56,9 +56,19 @@ jobs:
           TAG="iso-$(date +%Y%m%d)"
           echo "ISO: $NAME ($((SIZE/1024/1024)) MB)"
 
-          # create tag if missing
-          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
-            git tag "$TAG"
+          # Same-day rebuild: purge assets from an earlier build today so a
+          # stale/broken ISO never sits next to the fresh one.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            for a in $(gh release view "$TAG" --json assets -q '.assets[].name'); do
+              echo "Removing stale asset: $a"
+              gh release delete-asset "$TAG" "$a" --yes
+            done
+          fi
+
+          # create the daily tag only if it is missing on the remote;
+          # pushing an existing remote tag fails and aborts same-day rebuilds
+          if ! git ls-remote --exit-code origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            git rev-parse "$TAG" >/dev/null 2>&1 || git tag "$TAG"
             git push origin "$TAG"
           fi
 
