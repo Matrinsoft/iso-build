@@ -52,10 +52,14 @@ sed -i "s|repo --name=lingmo --baseurl=.*|repo --name=lingmo --baseurl=file://$R
 
 # Self-built rpms are unsigned; Fedora 45 branched key may be missing in the
 # build container. livecd-creator's imgcreate writes its own dnf.conf (which
-# does not read the global dnf.conf), so patch its dnf backend to disable
-# gpgcheck directly. The signature check lives in dnf.base._sig_check_pkg(),
-# which reads each repo's `gpgcheck` attribute; the per-repo value must be
-# forced off directly on the repo objects.
+# does not read the global dnf.conf), so patch its dnf backend.
+#
+# The "package ... does not verify: NOKEY / no signature" error is raised by
+# RPM's transaction test (dnf.base.do_transaction -> self._ts.test()). RPM
+# only skips signature verification when the `nocrypto` tsflag is set, which
+# dnf maps to RPMVSF_NOSIGNATURES|RPMVSF_NODIGESTS (dnf/base.py:638-645).
+# Setting gpgcheck=0 alone is NOT sufficient. Also force gpgcheck off per
+# repo to satisfy dnf's own download-time _sig_check_pkg().
 python3 - <<'PYEOF'
 import glob
 f = glob.glob("/usr/lib/python*/site-packages/imgcreate/dnfinst.py")
@@ -63,10 +67,11 @@ assert f, "imgcreate dnfinst.py not found"
 f = f[0]
 s = open(f).read()
 
-# 1) Disable gpgcheck for any cmdline/fallback paths via [main] dnf.conf.
+# 1) Add the `nocrypto` tsflag (RPM-level sig check off) + gpgcheck=0 in
+#    the generated [main] dnf.conf.
 needle_main = 'conf += "tsflags=nocontexts\\n"'
-patch_main = 'conf += "tsflags=nocontexts\\n"\n        conf += "gpgcheck=0\\n"\n        conf += "repo_gpgcheck=0\\n"'
-if needle_main in s and "gpgcheck=0" not in s:
+patch_main = 'conf += "tsflags=nocontexts,nocrypto\\n"\n        conf += "gpgcheck=0\\n"\n        conf += "repo_gpgcheck=0\\n"'
+if needle_main in s:
     s = s.replace(needle_main, patch_main)
 
 # 2) Force gpgcheck off on every repo object right after it is created.
@@ -79,7 +84,7 @@ if needle_repo in s:
     s = s.replace(needle_repo, patch_repo)
 
 open(f, "w").write(s)
-print("patched gpgcheck=0 into", f)
+print("patched nocrypto+gpgcheck=0 into", f)
 PYEOF
 
 livecd-creator \
