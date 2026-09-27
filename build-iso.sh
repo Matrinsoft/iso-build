@@ -53,21 +53,33 @@ sed -i "s|repo --name=lingmo --baseurl=.*|repo --name=lingmo --baseurl=file://$R
 # Self-built rpms are unsigned; Fedora 45 branched key may be missing in the
 # build container. livecd-creator's imgcreate writes its own dnf.conf (which
 # does not read the global dnf.conf), so patch its dnf backend to disable
-# gpgcheck directly.
+# gpgcheck directly. The signature check lives in dnf.base._sig_check_pkg(),
+# which reads each repo's `gpgcheck` attribute; the per-repo value must be
+# forced off directly on the repo objects.
 python3 - <<'PYEOF'
 import glob
 f = glob.glob("/usr/lib/python*/site-packages/imgcreate/dnfinst.py")
 assert f, "imgcreate dnfinst.py not found"
 f = f[0]
 s = open(f).read()
-needle = 'conf += "tsflags=nocontexts\\n"'
-patch = 'conf += "tsflags=nocontexts\\n"\n        conf += "gpgcheck=0\\n"\n        conf += "repo_gpgcheck=0\\n"'
-if needle in s and "gpgcheck=0" not in s:
-    s = s.replace(needle, patch)
-    open(f, "w").write(s)
-    print("patched gpgcheck=0 into", f)
-else:
-    print("gpgcheck patch already present or needle not found in", f)
+
+# 1) Disable gpgcheck for any cmdline/fallback paths via [main] dnf.conf.
+needle_main = 'conf += "tsflags=nocontexts\\n"'
+patch_main = 'conf += "tsflags=nocontexts\\n"\n        conf += "gpgcheck=0\\n"\n        conf += "repo_gpgcheck=0\\n"'
+if needle_main in s and "gpgcheck=0" not in s:
+    s = s.replace(needle_main, patch_main)
+
+# 2) Force gpgcheck off on every repo object right after it is created.
+needle_repo = '        repo.enable()\n        repo.set_progress_bar(DownloadProgress())\n'
+patch_repo = ('        repo.gpgcheck = False\n'
+              '        repo.repo_gpgcheck = False\n'
+              '        repo.enable()\n'
+              '        repo.set_progress_bar(DownloadProgress())\n')
+if needle_repo in s:
+    s = s.replace(needle_repo, patch_repo)
+
+open(f, "w").write(s)
+print("patched gpgcheck=0 into", f)
 PYEOF
 
 livecd-creator \

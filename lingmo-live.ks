@@ -6,6 +6,10 @@ keyboard us
 timezone UTC
 rootpw --lock --iscrypted locked
 
+# Root filesystem image size (MB). Default is 4GB, which the full GNOME
+# image plus firmware exceeds; give ourselves comfortable headroom.
+part / --size=8192
+
 # Fedora 45 repository (branched/development stage, not yet formally released)
 repo --name=fedora --baseurl=https://dl.fedoraproject.org/pub/fedora/linux/development/45/Everything/x86_64/os/ --cost=200
 repo --name=fedora-updates --baseurl=https://dl.fedoraproject.org/pub/fedora/linux/updates/45/Everything/x86_64/ --cost=300
