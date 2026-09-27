@@ -31,6 +31,20 @@ kernel
 kernel-modules
 kernel-modules-extra
 dracut
+# dracut-live provides 70livenet + 70dmsquash-live, which imgcreate hardcodes
+# into /etc/dracut.conf.d/99-liveos.conf (add_dracutmodules+=" livenet
+# dmsquash-live pollcdrom "). Without it, dracut exits 1 during kernel install
+# ("Module 'livenet' cannot be found.") and no initramfs is built, so
+# initrd0.img is silently missing from the ISO.
+dracut-live
+# livenet's depends() includes "network" (70network/40network lives in
+# dracut-network) and "url-lib" (needs the curl binary, already pulled in).
+# Without dracut-network, dracut fails with
+# "Module 'livenet' depends on module 'network', which can't be installed".
+dracut-network
+# url-lib's check() requires the curl binary (livenet depends on url-lib);
+# declare it explicitly instead of relying on a transitive pull-in.
+curl
 dracut-config-generic
 grub2-efi-x64
 grub2-efi-x64-cdboot
