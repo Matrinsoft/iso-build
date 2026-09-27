@@ -6,6 +6,9 @@ keyboard us
 timezone UTC
 rootpw --lock --iscrypted locked
 
+# Live user: GDM auto-logs it in at boot (see %post), wheel for sudo.
+user --name=liveuser --password=liveuser --groups=wheel
+
 # Root filesystem image size (MB). Default is 4GB, which the full GNOME
 # image plus firmware exceeds; give ourselves comfortable headroom.
 part / --size=8192
@@ -179,6 +182,17 @@ systemctl enable gdm
 
 # Enable NetworkManager
 systemctl enable NetworkManager
+
+# --- GDM: auto-login the live user (standard live-image behavior) ---
+# The image has no other account (root is locked), so without this the
+# system is unusable: GDM shows an empty user list and the ttys accept
+# no login. Overwriting custom.conf is safe: every key in it is optional
+# and WaylandEnable defaults to true.
+cat > /etc/gdm/custom.conf <<'EOF'
+[daemon]
+AutomaticLoginEnable=true
+AutomaticLogin=liveuser
+EOF
 
 # --- SELinux: label the rootfs (MANDATORY for boot) ---
 # livecd-creator never runs setfiles, so the image would ship with zero
