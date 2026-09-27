@@ -50,6 +50,11 @@ echo "=== Building live ISO ==="
 # Point the kickstart's lingmo repo at the freshly built local repo
 sed -i "s|repo --name=lingmo --baseurl=.*|repo --name=lingmo --baseurl=file://$REPO_DIR --cost=1|" "$WORK_DIR/lingmo-live.ks"
 
+# Self-built rpms are unsigned; Fedora 45 branched key may be missing in the
+# build container. Disable gpgcheck for the whole image build.
+echo "gpgcheck=0" >> /etc/dnf/dnf.conf
+echo "repo_gpgcheck=0" >> /etc/dnf/dnf.conf
+
 livecd-creator \
   --config="$WORK_DIR/lingmo-live.ks" \
   --fslabel="${ISO_NAME}" \
