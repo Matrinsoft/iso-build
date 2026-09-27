@@ -113,7 +113,11 @@ if [ -f "/tmp/lingmo_${ISO_NAME}.iso" ] || compgen -G "*.iso" >/dev/null; then
     produced=$(find / -maxdepth 3 -name '*.iso' -newer "$WORK_DIR/repos.txt" 2>/dev/null | head -1)
   fi
   if [ -n "$produced" ]; then
-    mv "$produced" "$ISO_OUT"
+    # livecd-creator may already have written the ISO with the canonical
+    # name; mv to the same file fails under set -e
+    if [ "$(readlink -f "$produced")" != "$(readlink -f "$ISO_OUT")" ]; then
+      mv "$produced" "$ISO_OUT"
+    fi
     echo "ISO written to $ISO_OUT"
   fi
 fi

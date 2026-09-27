@@ -33,6 +33,7 @@ kernel-modules-extra
 dracut
 dracut-config-generic
 grub2-efi-x64
+grub2-efi-x64-cdboot
 grub2-tools
 grub2-tools-minimal
 shim-x64
