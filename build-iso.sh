@@ -51,9 +51,24 @@ echo "=== Building live ISO ==="
 sed -i "s|repo --name=lingmo --baseurl=.*|repo --name=lingmo --baseurl=file://$REPO_DIR --cost=1|" "$WORK_DIR/lingmo-live.ks"
 
 # Self-built rpms are unsigned; Fedora 45 branched key may be missing in the
-# build container. Disable gpgcheck for the whole image build.
-echo "gpgcheck=0" >> /etc/dnf/dnf.conf
-echo "repo_gpgcheck=0" >> /etc/dnf/dnf.conf
+# build container. livecd-creator's imgcreate writes its own dnf.conf (which
+# does not read the global dnf.conf), so patch its dnf backend to disable
+# gpgcheck directly.
+python3 - <<'PYEOF'
+import glob
+f = glob.glob("/usr/lib/python*/site-packages/imgcreate/dnfinst.py")
+assert f, "imgcreate dnfinst.py not found"
+f = f[0]
+s = open(f).read()
+needle = 'conf += "tsflags=nocontexts\\n"'
+patch = 'conf += "tsflags=nocontexts\\n"\n        conf += "gpgcheck=0\\n"\n        conf += "repo_gpgcheck=0\\n"'
+if needle in s and "gpgcheck=0" not in s:
+    s = s.replace(needle, patch)
+    open(f, "w").write(s)
+    print("patched gpgcheck=0 into", f)
+else:
+    print("gpgcheck patch already present or needle not found in", f)
+PYEOF
 
 livecd-creator \
   --config="$WORK_DIR/lingmo-live.ks" \
