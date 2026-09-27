@@ -47,6 +47,16 @@ echo "=== Creating local repository ==="
 createrepo_c "$REPO_DIR"
 
 echo "=== Building live ISO ==="
+# Fedora 45 / RPM 6.0: %_pkgverify_level defaults to "all" (valid signature
+# AND digest required at RPM transaction level). This bypasses dnf's
+# nocrypto/gpgcheck handling and fails the transaction test with
+# "does not verify: NOKEY / no signature" for unsigned self-built RPMs and
+# packages whose signing key is not in the installroot rpmdb.
+# Documented workaround for the F45 signature-enforcement change:
+# https://fedoraproject.org/wiki/Changes/Enforcing_signature_checking_by_default
+mkdir -p /etc/rpm
+echo '%_pkgverify_level digest' > /etc/rpm/macros.verify
+echo "rpm pkgverify_level: $(rpm --eval '%_pkgverify_level')"
 # Point the kickstart's lingmo repo at the freshly built local repo
 sed -i "s|repo --name=lingmo --baseurl=.*|repo --name=lingmo --baseurl=file://$REPO_DIR --cost=1|" "$WORK_DIR/lingmo-live.ks"
 
