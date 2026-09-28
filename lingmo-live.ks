@@ -6,8 +6,9 @@ keyboard us
 timezone UTC
 rootpw --lock --iscrypted locked
 
-# Live user: GDM auto-logs it in at boot (see %post), wheel for sudo.
-user --name=liveuser --password=liveuser --groups=wheel
+# Live user: created in %post (the kickstart `user` command is silently
+# ignored by livecd-creator — verified: built /etc/passwd has no liveuser).
+# GDM auto-logs it in at boot.
 
 # Root filesystem image size (MB). Default is 4GB, which the full GNOME
 # image plus firmware exceeds; give ourselves comfortable headroom.
@@ -182,6 +183,15 @@ systemctl enable gdm
 
 # Enable NetworkManager
 systemctl enable NetworkManager
+
+# --- Live user: create the account GDM will auto-login ---
+# The kickstart `user` command is silently ignored by livecd-creator, so
+# without this the image has no login account at all (root is locked) and
+# autologin fails: GDM falls back to a getty and the ttys accept nothing.
+if ! id liveuser >/dev/null 2>&1; then
+  useradd -m -u 1000 -G wheel liveuser
+  echo 'liveuser:liveuser' | chpasswd
+fi
 
 # --- GDM: auto-login the live user (standard live-image behavior) ---
 # The image has no other account (root is locked), so without this the
