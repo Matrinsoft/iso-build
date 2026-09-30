@@ -181,6 +181,18 @@ systemctl set-default graphical.target
 # Enable GDM
 systemctl enable gdm
 
+# --- GDM: keep kmscon off tty1 or autologin gets replaced by a greeter ---
+# kmscon.service is pulled in by multi-user.target and claims tty1 at
+# the moment GDM registers its display. gdm.service only Conflicts with
+# getty@tty1 and kmsconvt@tty1, so kmscon.service survives; the VT/uevent
+# wakes the display factory, which builds a greeter session on top of
+# the liveuser session (the first one dies with "Session never
+# registered") and the login screen permanently replaces the desktop.
+# A/B test on the 20260928 image: with these two units masked, no
+# greeter session is ever created and the desktop stays up.
+systemctl disable kmscon.service
+systemctl disable kmsconvt@tty1.service
+
 # Enable NetworkManager
 systemctl enable NetworkManager
 
