@@ -1,0 +1,7 @@
+.config
+*.iso
+*.iso.part*
+out/
+lingmo-repo/
+pkg/Kconfig.pkg
+__pycache__/

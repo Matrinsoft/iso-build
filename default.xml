@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Lingmo OS source manifest (Android "repo" style).
+
+  Usage, from the workspace root:
+    repo init -b main -u https://github.com/Matrinsoft/iso-build.git
+    repo sync
+  (pass the usual repo init options, e.g. partial clone; see README.md.
+   repo clones this manifest repo itself into .repo/manifests.)
+-->
+<manifest>
+  <remote name="github" fetch="https://github.com/Matrinsoft/" />
+  <default remote="github" revision="main" sync-j="4" />
+
+
+  <!-- GNOME component sources (apps/) -->
+  <project name="baobab" path="apps/baobab-50.0-5.fc45.src" />
+  <project name="decibels" path="apps/decibels-49.6.1-4.fc45.src" />
+  <project name="backgrounds" path="apps/gnome-backgrounds-51~beta-1.fc45.src" />
+  <project name="bluetooth" path="apps/gnome-bluetooth-47.2-3.fc45.src" />
+  <project name="boxes" path="apps/gnome-boxes-50.0-6.fc45.src" />
+  <project name="browser-connector" path="apps/gnome-browser-connector-42.1-17.fc45.src" />
+  <project name="calculator" path="apps/gnome-calculator-51~rc-1.fc45.src" />
+  <project name="calendar" path="apps/gnome-calendar-51~rc-1.fc45.src" />
+  <project name="characters" path="apps/gnome-characters-51~rc-1.fc45.src" />
+  <project name="clocks" path="apps/gnome-clocks-51~rc-1.fc45.src" />
+  <project name="color-manager" path="apps/gnome-color-manager-3.36.2-10.fc45.src" />
+  <project name="connections" path="apps/gnome-connections-51~rc.1-1.fc45.src" />
+  <project name="contacts" path="apps/gnome-contacts-50.0-6.fc45.src" />
+  <project name="disk-utility" path="apps/gnome-disk-utility-46.1-9.fc45.src" />
+  <project name="epub-thumbnailer" path="apps/gnome-epub-thumbnailer-1.8-5.fc45.src" />
+  <project name="font-viewer" path="apps/gnome-font-viewer-50.0-8.fc45.src" />
+  <project name="logs" path="apps/gnome-logs-50.0-6.fc45.src" />
+  <project name="maps" path="apps/gnome-maps-51~rc-1.fc45.src" />
+  <project name="system-monitor" path="apps/gnome-system-monitor-51~rc-1.fc45.src" />
+  <project name="text-editor" path="apps/gnome-text-editor-51~beta-1.fc45.src" />
+  <project name="user-docs" path="apps/gnome-user-docs-51~beta-1.fc45.src" />
+  <project name="user-share" path="apps/gnome-user-share-48.3-3.fc45.src" />
+  <project name="weather" path="apps/gnome-weather-50.0-6.fc45.src" />
+  <project name="loupe" path="apps/loupe-51.0-1.fc45.src" />
+  <project name="papers" path="apps/papers-51~beta-1.fc45.src" />
+  <project name="ptyxis" path="apps/ptyxis-50.1-6.fc45.src" />
+  <project name="showtime" path="apps/showtime-50.0-7.fc45.src" />
+  <project name="snapshot" path="apps/snapshot-51.0-1.fc45.src" />
+  <project name="sushi" path="apps/sushi-51~rc-1.fc45.src" />
+  <project name="yelp" path="apps/yelp-49.2-1.fc45.src" />
+
+  <!-- GNOME component sources (core/) -->
+  <project name="gdm" path="core/gdm-51~rc-2.fc45.src" />
+  <project name="control-center" path="core/gnome-control-center-51~rc.1-1.fc45.src" />
+  <project name="initial-setup" path="core/gnome-initial-setup-51~rc-1.fc45.src" />
+  <project name="session" path="core/gnome-session-51~rc-1.fc45.src" />
+  <project name="settings-daemon" path="core/gnome-settings-daemon-51~rc-1.fc45.src" />
+  <project name="shell" path="core/gnome-shell-51~rc-2.fc45.src" />
+  <project name="shell-extensions" path="core/gnome-shell-extensions-51~rc-1.fc45.src" />
+  <project name="software" path="core/gnome-software-51.0-1.fc45.src" />
+  <project name="nautilus" path="core/nautilus-51~rc-1.fc45.src" />
+  <project name="lingmo-release" path="core/lingmo-release" />
+
+  <!-- Desktop infrastructure (desktop/) -->
+  <project name="avahi" path="desktop/avahi-0.9~rc2-9.fc45.src" />
+  <project name="glib-networking" path="desktop/glib-networking-2.90~alpha-2.fc45.src" />
+  <project name="glycin" path="desktop/glycin-2.2.0-1.fc45.src" />
+  <project name="remote-desktop" path="desktop/gnome-remote-desktop-51~rc-1.fc45.src" />
+  <project name="gvfs" path="desktop/gvfs-1.61.91-1.fc45.src" />
+  <project name="librsvg2" path="desktop/librsvg2-2.62.3-3.fc45.src" />
+  <project name="localsearch" path="desktop/localsearch-3.12~rc-1.fc45.src" />
+  <project name="polkit" path="desktop/polkit-127-5.fc45.src" />
+  <project name="tinysparql" path="desktop/tinysparql-3.12~rc-1.fc45.src" />
+  <project name="vte291" path="desktop/vte291-0.84.1-1.fc45.src" />
+  <project name="xdg-desktop-portal" path="desktop/xdg-desktop-portal-1.22.1-2.fc45.src" />
+  <project name="xdg-desktop-portal-gnome" path="desktop/xdg-desktop-portal-gnome-51~rc-1.fc45.src" />
+  <project name="xdg-desktop-portal-gtk" path="desktop/xdg-desktop-portal-gtk-1.15.3-6.fc45.src" />
+  <project name="xdg-user-dirs-gtk" path="desktop/xdg-user-dirs-gtk-0.16-6.fc45.src" />
+
+  <!-- External dependencies (external/) -->
+  <project name="accountsservice" path="external/accountsservice-26.27.3-2.fc45.src" />
+  <project name="adobe-source-code-pro-fonts" path="external/adobe-source-code-pro-fonts-2.042.1.062.1.026-10.fc45.src" />
+  <project name="dconf" path="external/dconf-51~rc-1.fc45.src" />
+  <project name="fprintd" path="external/fprintd-1.94.5-6.fc45.src" />
+  <project name="geoclue2" path="external/geoclue2-2.8.2-2.fc45.src" />
+  <project name="gjs" path="external/gjs-1.89.90-1.fc45.src" />
+  <project name="glib2" path="external/glib2-2.89.4-1.fc45.src" />
+  <project name="desktop3" path="external/gnome-desktop3-51~alpha-2.fc45.src" />
+  <project name="gsettings-desktop-schemas" path="external/gsettings-desktop-schemas-51~rc-2.fc45.src" />
+  <project name="gst-thumbnailers" path="external/gst-thumbnailers-1.1.0-1.fc45.src" />
+  <project name="gtk4" path="external/gtk4-4.23.4-1.fc45.src" />
+  <project name="hplip" path="external/hplip-3.26.4-9.fc45.src" />
+  <project name="libadwaita" path="external/libadwaita-1.10~beta.1-2.fc45.src" />
+  <project name="mesa" path="external/mesa-26.2.2-6.fc45.src" />
+  <project name="mutter" path="external/mutter-51~rc-2.fc45.src" />
+  <project name="NetworkManager" path="external/NetworkManager-1.58.1-1.fc45.src" />
+  <project name="NetworkManager-libreswan" path="external/NetworkManager-libreswan-1.2.30-4.fc45.src" />
+  <project name="NetworkManager-openconnect" path="external/NetworkManager-openconnect-1.2.10-12.fc45.src" />
+  <project name="NetworkManager-openvpn" path="external/NetworkManager-openvpn-1.12.5-5.fc45.src" />
+  <project name="NetworkManager-ssh" path="external/NetworkManager-ssh-1.4.5-3.fc45.src" />
+  <project name="PackageKit" path="external/PackageKit-1.4.0-1.fc45.src" />
+  <project name="rygel" path="external/rygel-46~rc.0-1.fc45.src" />
+  <project name="sane-backends" path="external/sane-backends-1.4.0-8.fc45.src" />
+  <project name="simple-scan" path="external/simple-scan-50.0-3.fc45.src" />
+  <project name="systemd" path="external/systemd-262~rc3-1.fc45.src" />
+  <project name="upower" path="external/upower-1.91.4-1.fc45.src" />
+
+  <!-- Installer components (installer/) -->
+  <project name="anaconda" path="installer/anaconda" />
+  <project name="anaconda-l10n" path="installer/anaconda-l10n" />
+  <project name="anaconda-webui" path="installer/anaconda-webui" />
+  <project name="anaconda-webui-l10n" path="installer/anaconda-webui-l10n" />
+  <project name="initial-setup" path="installer/initial-setup" />
+  <project name="initial-setup-l10n" path="installer/initial-setup-l10n" revision="master" />
+  <project name="isomd5sum" path="installer/isomd5sum" revision="master" />
+  <project name="kdump-anaconda-addon" path="installer/kdump-anaconda-addon" />
+  <project name="python-meh" path="installer/python-meh" revision="master" />
+  <project name="python-meh-l10n" path="installer/python-meh-l10n" revision="master" />
+  <project name="python-simpleline" path="installer/python-simpleline" />
+  <project name="python-simpleline-l10n" path="installer/python-simpleline-l10n" revision="master" />
+
+</manifest>

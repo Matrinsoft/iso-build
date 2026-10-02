@@ -1,0 +1,106 @@
+# Lingmo OS ISO build configuration (kernel-style)
+# Usage:
+#   make defconfig     - load defaults from configs/desktop.config
+#   make menuconfig    - interactive configuration UI
+#   make iso           - build the ISO with the current .config
+
+mainmenu "Lingmo OS ISO Configuration"
+
+choice
+	prompt "ISO type"
+	default ISO_TYPE_DESKTOP
+
+config ISO_TYPE_DESKTOP
+	bool "Desktop live (GNOME)"
+
+config ISO_TYPE_SERVER
+	bool "Server"
+
+config ISO_TYPE_MINIMAL
+	bool "Minimal"
+
+config ISO_TYPE_INSTALLABLE
+	bool "Installable (Anaconda WebUI)"
+endchoice
+
+menu "Image identity"
+
+config ISO_STEM
+	string "ISO filename stem"
+	default "lingmoOS_5_Unstable"
+	help
+	  Base name of the produced ISO. The build appends the YYMMDD
+	  date and _amd64, e.g. lingmoOS_5_Unstable_260928_amd64.iso.
+
+config FS_LABEL
+	string "ISO volume label"
+	default "lingmoOS_5_Unstable"
+	help
+	  Passed to livecd-creator --fslabel.
+
+config BOOT_TITLE
+	string "Boot title"
+	default "Lingmo OS 5 (Unstable)"
+	help
+	  Passed to livecd-creator --title; shown by the bootloader.
+
+endmenu
+
+menu "System defaults"
+
+config SYS_LANG
+	string "System language"
+	default "en_US.UTF-8"
+
+config SYS_KEYBOARD
+	string "Keyboard layout"
+	default "us"
+
+config SYS_TIMEZONE
+	string "Timezone"
+	default "UTC"
+
+config ROOT_SIZE_MB
+	int "Root filesystem size (MB)"
+	default 8192
+	help
+	  Size of the root partition inside the live image. The full
+	  GNOME image plus firmware exceeds the 4 MB default of
+	  livecd-creator; 8192 gives comfortable headroom.
+
+config LIVE_USER
+	string "Live user name"
+	default "liveuser"
+
+config LIVE_PASSWORD
+	string "Live user password"
+	default "liveuser"
+
+config AUTOLOGIN
+	bool "GDM auto-login the live user"
+	default y
+
+endmenu
+
+menu "Advanced"
+
+config GITHUB_ORG
+	string "GitHub org owning the self-built RPM repos"
+	default "Matrinsoft"
+
+config REPO_CACHE
+	string "Local RPM repository directory"
+	default "/tmp/lingmo-repo"
+
+config DNF_CACHE
+	string "livecd-creator dnf cache directory"
+	default "/tmp/lmc-cache"
+
+config SPLIT_RELEASE
+	bool "Split ISOs larger than 2 GiB when uploading releases"
+	default y
+
+endmenu
+
+# Optional so a bare checkout (CI) still parses before "make pkg/Kconfig.pkg"
+osource "pkg/Kconfig.pkg"
