@@ -6,18 +6,23 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ORG="${GITHUB_ORG:-Matrinsoft}"
 TOKEN="${GITHUB_TOKEN:-}"
-REPO_DIR="${REPO_DIR:-/tmp/lingmo-repo}"
+REPO_DIR="${REPO_DIR:-/var/cache/lingmo-repo}"
 WORK_DIR="$ROOT"
+DOWNLOAD_JOBS="${RPM_DOWNLOAD_JOBS:-6}"
+case "$DOWNLOAD_JOBS" in
+  ''|*[!0-9]*|0) DOWNLOAD_JOBS=6 ;;
+esac
 curl_auth=()
 if [ -n "$TOKEN" ]; then
   curl_auth=(-H "Authorization: Bearer $TOKEN")
 fi
 
 echo "=== Downloading self-built RPMs ==="
-rm -rf "$REPO_DIR"
 mkdir -p "$REPO_DIR"
 
-count=0
+urls_file="$(mktemp)"
+trap 'rm -f "$urls_file" "$urls_file".*' EXIT
+
 while IFS= read -r repo; do
   [ -z "$repo" ] && continue
   echo "  -> $repo"
@@ -34,27 +39,59 @@ try:
     for a in d.get("assets", []):
         n=a["name"]
         # only fc45 (or noarch) non-debug rpms; older builds may leave fc44/fc46 behind
-        if n.endswith(".rpm") and "debuginfo" not in n and "debugsource" not in n and (".fc45." in n or n.endswith(".noarch.rpm")):
+        if n.endswith(".rpm") and not n.endswith(".src.rpm") and "debuginfo" not in n and "debugsource" not in n and (".fc45." in n or n.endswith(".noarch.rpm")):
             print(a["browser_download_url"])
 except Exception as e:
     pass' || true)
   if [ -z "$urls" ]; then
     echo "WARNING: no rpm assets listed for $repo (network error or no release), skipping"
   fi
-  for url in $urls; do
-    fname="$(basename "$url")"
-    curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 \
-      "${curl_auth[@]}" -o "$REPO_DIR/$fname" "$url" || {
-      echo "WARNING: failed to download $fname, skipping"; rm -f "$REPO_DIR/$fname"; continue; }
-    # verify rpm is intact; drop corrupt/incomplete downloads
-    if ! rpm -K --nosignature "$REPO_DIR/$fname" >/dev/null 2>&1; then
-      echo "WARNING: invalid rpm $fname, removing"; rm -f "$REPO_DIR/$fname"; continue
-    fi
-    count=$((count+1))
-  done
+  while IFS= read -r url; do
+    [ -z "$url" ] || printf '%s\t%s\n' "$(basename "$url")" "$url" >> "$urls_file"
+  done <<< "$urls"
 done < "$WORK_DIR/repos.txt"
 
-echo "Downloaded $count RPMs into $REPO_DIR"
+download_one() {
+  local fname="$1" url="$2" target="$REPO_DIR/$1" temp="$REPO_DIR/$1.part.$$"
+  if [ -f "$target" ] && rpm -K --nosignature "$target" >/dev/null 2>&1; then
+    echo "  cached: $fname"
+    return 0
+  fi
+  rm -f "$target" "$temp"
+  if ! curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 \
+      "${curl_auth[@]}" -o "$temp" "$url"; then
+    echo "WARNING: failed to download $fname, skipping" >&2
+    rm -f "$temp"
+    return 0
+  fi
+  if ! rpm -K --nosignature "$temp" >/dev/null 2>&1; then
+    echo "WARNING: invalid rpm $fname, removing" >&2
+    rm -f "$temp"
+    return 0
+  fi
+  mv -f "$temp" "$target"
+}
+
+export REPO_DIR
+
+echo "=== Downloading RPM assets ($DOWNLOAD_JOBS parallel jobs) ==="
+while IFS=$'\t' read -r fname url; do
+  [ -z "$fname" ] && continue
+  while [ "$(jobs -rp | wc -l)" -ge "$DOWNLOAD_JOBS" ]; do
+    wait -n || true
+  done
+  download_one "$fname" "$url" &
+done < "$urls_file"
+wait
+
+count=0
+for rpm in "$REPO_DIR"/*.rpm; do
+  [ -f "$rpm" ] || continue
+  if rpm -K --nosignature "$rpm" >/dev/null 2>&1; then
+    count=$((count + 1))
+  fi
+done
+echo "Downloaded or reused $count RPMs in $REPO_DIR"
 
 echo "=== Creating local repository ==="
 createrepo_c "$REPO_DIR"

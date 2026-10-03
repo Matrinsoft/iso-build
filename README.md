@@ -110,7 +110,7 @@ make iso          # 渲染 kickstart → 下载自建 RPM → livecd-creator 出
 
 1. `fedora:45` 容器安装 `livecd-tools`、`createrepo_c`；
 2. 根目录 `bash build-iso.sh`（薄壳：渲染 kickstart → `scripts/build-iso.sh`）；
-3. `fetch-rpms.sh` 下载自建 RPM（跳过 debuginfo）→ `createrepo_c`；
+3. `fetch-rpms.sh` 并发下载自建二进制 RPM（跳过源码包和 debuginfo）→ `createrepo_c`；
 4. `livecd-creator` 出 ISO → 改名 → `boot/verify-iso.py` 内容门禁；
 5. 上传 release（>2 GiB 自动分片）。
 
@@ -118,6 +118,7 @@ make iso          # 渲染 kickstart → 下载自建 RPM → livecd-creator 出
 
 - **构建超时/磁盘不足**：live ISO 构建 30–60 分钟、约 8–10 GB 磁盘。
 - **自建包缺失导致依赖失败**：dnf 回退到 Fedora 同名包；否则报依赖错误。
+- **重复构建下载很慢**：本地构建默认将 RPM 缓存在 `/var/cache/lingmo-repo`，已下载且校验通过的文件会复用；可用 `REPO_DIR=/path/to/cache` 指定目录，或用 `RPM_DOWNLOAD_JOBS=8` 调整并发数。
 - **ISO 大于 2 GiB**：自动分片，按分片文件名顺序 `cat` 合并。
 - **`make sync` 报 `default.xml ... not committed`**：manifest 克隆只含已提交
   文件，先提交 `default.xml`。
