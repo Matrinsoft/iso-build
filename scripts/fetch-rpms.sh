@@ -21,6 +21,8 @@ echo "=== Downloading self-built RPMs ==="
 mkdir -p "$REPO_DIR"
 
 urls_file="$(mktemp)"
+api_cache="$REPO_DIR/.api-cache"
+mkdir -p "$api_cache"
 trap 'rm -f "$urls_file" "$urls_file".*' EXIT
 
 while IFS= read -r repo; do
@@ -29,9 +31,23 @@ while IFS= read -r repo; do
   # List release .rpm assets (exclude debuginfo to save space/time).
   # Transient TLS failures against GitHub must not abort the build:
   # retry, then treat an empty listing as "nothing to download here".
-  api_json=$(curl -sS --retry 5 --retry-all-errors --retry-delay 2 \
-    "${curl_auth[@]}" \
-    "https://api.github.com/repos/$ORG/$repo/releases/latest" || true)
+  api_file="$api_cache/$repo.json"
+  api_tmp="$api_file.part.$$"
+  if curl -fsS --connect-timeout 8 --max-time 30 \
+      --retry 3 --retry-all-errors --retry-delay 2 \
+      "${curl_auth[@]}" \
+      -o "$api_tmp" \
+      "https://api.github.com/repos/$ORG/$repo/releases/latest" \
+      && python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$api_tmp"; then
+    mv -f "$api_tmp" "$api_file"
+  else
+    rm -f "$api_tmp"
+  fi
+  if [ -s "$api_file" ]; then
+    api_json="$(cat "$api_file")"
+  else
+    api_json=""
+  fi
   urls=$(printf '%s' "$api_json" \
     | python3 -c 'import sys,json
 try:
