@@ -8,6 +8,10 @@ ORG="${GITHUB_ORG:-Matrinsoft}"
 TOKEN="${GITHUB_TOKEN:-}"
 REPO_DIR="${REPO_DIR:-/tmp/lingmo-repo}"
 WORK_DIR="$ROOT"
+curl_auth=()
+if [ -n "$TOKEN" ]; then
+  curl_auth=(-H "Authorization: Bearer $TOKEN")
+fi
 
 echo "=== Downloading self-built RPMs ==="
 rm -rf "$REPO_DIR"
@@ -21,7 +25,7 @@ while IFS= read -r repo; do
   # Transient TLS failures against GitHub must not abort the build:
   # retry, then treat an empty listing as "nothing to download here".
   api_json=$(curl -sS --retry 5 --retry-all-errors --retry-delay 2 \
-    -H "Authorization: Bearer $TOKEN" \
+    "${curl_auth[@]}" \
     "https://api.github.com/repos/$ORG/$repo/releases/latest" || true)
   urls=$(printf '%s' "$api_json" \
     | python3 -c 'import sys,json
@@ -40,7 +44,7 @@ except Exception as e:
   for url in $urls; do
     fname="$(basename "$url")"
     curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 \
-      -H "Authorization: Bearer $TOKEN" -o "$REPO_DIR/$fname" "$url" || {
+      "${curl_auth[@]}" -o "$REPO_DIR/$fname" "$url" || {
       echo "WARNING: failed to download $fname, skipping"; rm -f "$REPO_DIR/$fname"; continue; }
     # verify rpm is intact; drop corrupt/incomplete downloads
     if ! rpm -K --nosignature "$REPO_DIR/$fname" >/dev/null 2>&1; then
