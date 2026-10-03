@@ -100,6 +100,15 @@ config SPLIT_RELEASE
 	bool "Split ISOs larger than 2 GiB when uploading releases"
 	default y
 
+config FEDORA_MIRROR
+	string "Fedora repository mirror root"
+	default "https://dl.fedoraproject.org/pub/fedora/linux"
+	help
+	  Base URL substituted into the kickstart repo lines
+	  (@FEDORA_MIRROR@/development/45/..., @FEDORA_MIRROR@/updates/45/...).
+	  Use e.g. https://mirrors.tuna.tsinghua.edu.cn/fedora/linux when the
+	  official mirror's TLS connections are unstable.
+
 endmenu
 
 # Optional so a bare checkout (CI) still parses before "make pkg/Kconfig.pkg"

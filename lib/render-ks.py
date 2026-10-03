@@ -57,6 +57,7 @@ TOKENS = (
     "ROOT_SIZE_MB",
     "LIVE_USER",
     "LIVE_PASSWORD",
+    "FEDORA_MIRROR",
 )
 
 
