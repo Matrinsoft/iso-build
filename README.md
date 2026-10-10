@@ -16,20 +16,25 @@
 # 前置：Fedora 环境，root 权限
 sudo dnf install -y livecd-tools createrepo_c git python3
 
-make defconfig    # 生成 .config（默认 = Desktop live 类型）
 make sync         # 用 git-repo + default.xml 拉取全部源码到 ../gnome-source
 make iso          # 渲染 kickstart → 下载自建 RPM → livecd-creator 出 ISO
+
+# 指定 ISO 类型（不指定则用 configs/desktop.config）：
+ISO_CONFIG=configs/installable.config bash build-iso.sh   # 安装器镜像（Anaconda WebUI）
+make defconfig KCONFIG_CONFIG=.config.installable && \
+  cp configs/installable.config .config.installable && make iso   # 等价的 make 用法
 ```
 
 > `livecd-creator` 需要 root（挂载 loop、chroot），约 8–10 GB 磁盘。
-> CI 不做 `make sync`/`make defconfig`：裸检出直接 `bash build-iso.sh`，
-> 渲染器回退到 Kconfig 默认值，产出与拆分前逐字节一致的 `lingmo-live.ks`。
+> CI 不做 `make sync`；`bash build-iso.sh` 用 `$ISO_CONFIG` 指定配置，
+> **当前 CI 构建的是 Installable（Anaconda WebUI 安装器）镜像**。
 
 ## make 目标
 
 | 目标 | 作用 |
 |---|---|
 | `make defconfig` | `configs/desktop.config` → `.config` |
+| `ISO_CONFIG=<file> bash build-iso.sh` | 用指定配置渲染 kickstart（`configs/desktop.config` / `configs/installable.config`） |
 | `make menuconfig` | 交互式配置 UI（vendored kconfiglib） |
 | `make oldconfig` | Kconfig 变更后刷新 `.config`（自动补新符号） |
 | `make sync` | `scripts/sync-repos.sh`：git-repo 同步 `default.xml` 全部项目 |
@@ -58,13 +63,24 @@ make iso          # 渲染 kickstart → 下载自建 RPM → livecd-creator 出
 
 | 类型 | 片段集 | 说明 |
 |---|---|---|
-| Desktop live | `10-packages-desktop` + `20-post-desktop` | GNOME 桌面、GDM 自动登录（默认） |
+| Desktop live | `10-packages-desktop` + `20-post-desktop` | GNOME 桌面、GDM 自动登录（`configs/desktop.config`，`make defconfig` 默认） |
 | Server | `10-packages-server` + `20-post-server` + `20-post-common` | 无图形界面 |
 | Minimal | `10-packages-minimal` + `20-post-minimal` + `20-post-common` | 最小集 |
-| Installable | `10-packages-installable` + `20-post-installable` + `20-post-common` | Anaconda WebUI 安装器镜像（anaconda + anaconda-webui + sshd，multi-user 启动） |
+| Installable | `10-packages-installable` + `20-post-installable` + `20-post-common` | Anaconda WebUI 安装器镜像（anaconda + anaconda-webui + sshd，multi-user 启动）；**CI 默认构建此类型**（`configs/installable.config`） |
 
 片段以一个空行拼接（`\n\n`），DESKTOP 渲染结果与拆分前的单体 kickstart 逐字节一致。
 渲染 token 为 `@UPPER_CASE@`（`SYS_LANG`/`ROOT_SIZE_MB`/`LIVE_USER` 等）。
+
+## 自建 RPM 来源（`scripts/fetch-rpms.sh`）
+
+`repos.txt` 里每个仓库都会从 GitHub Release 取 RPM：
+
+- 用 `GET /repos/<org>/<repo>/releases?per_page=50` 列出 release，**按 `published_at` 取最新**；
+  因为组件仓库发布的是 `ci-<sha>` **预发布（pre-release）** release，而 `/releases/latest` 接口会跳过预发布
+  （全为预发布时直接 404），用 latest 会一个包都下不到、ISO 里全是 Fedora 原版包。
+- 从最新开始找**第一个带可用 RPM 资产**的 release（跳过 draft、跳过只有 tag 没产物的 release），
+  只取 `*.fc45.*` / `*.noarch.rpm`，排除 `*.src.rpm`、`debuginfo`、`debugsource`。
+- 结果缓存在 `$REPO_DIR/.api-cache/<repo>.json`，下载失败的包只告警不中断构建。
 
 ## 源码同步（make sync）
 

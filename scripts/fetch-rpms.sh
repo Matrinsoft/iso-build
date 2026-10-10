@@ -37,7 +37,7 @@ while IFS= read -r repo; do
       --retry 3 --retry-all-errors --retry-delay 2 \
       "${curl_auth[@]}" \
       -o "$api_tmp" \
-      "https://api.github.com/repos/$ORG/$repo/releases/latest" \
+      "https://api.github.com/repos/$ORG/$repo/releases?per_page=50" \
       && python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$api_tmp"; then
     mv -f "$api_tmp" "$api_file"
   else
@@ -50,15 +50,30 @@ while IFS= read -r repo; do
   fi
   urls=$(printf '%s' "$api_json" \
     | python3 -c 'import sys,json
+def usable(name):
+    # only fc45 (or noarch) non-debug rpms; older builds may leave fc44/fc46 behind
+    return (name.endswith(".rpm") and not name.endswith(".src.rpm")
+            and "debuginfo" not in name and "debugsource" not in name
+            and (".fc45." in name or name.endswith(".noarch.rpm")))
 try:
-    d=json.load(sys.stdin)
-    for a in d.get("assets", []):
-        n=a["name"]
-        # only fc45 (or noarch) non-debug rpms; older builds may leave fc44/fc46 behind
-        if n.endswith(".rpm") and not n.endswith(".src.rpm") and "debuginfo" not in n and "debugsource" not in n and (".fc45." in n or n.endswith(".noarch.rpm")):
-            print(a["browser_download_url"])
+    data = json.load(sys.stdin)
+    releases = data if isinstance(data, list) else [data]
+    # The build pipeline publishes ci-<sha> releases as pre-releases, and
+    # the /releases/latest endpoint skips those (it answers 404 when every
+    # release is a pre-release). Use the newest release that actually
+    # carries usable RPM assets instead.
+    releases = sorted((r for r in releases if not r.get("draft")),
+                      key=lambda r: r.get("published_at") or r.get("created_at") or "",
+                      reverse=True)
+    for release in releases:
+        assets = [a for a in release.get("assets", []) if usable(a.get("name", ""))]
+        if assets:
+            print("  release: %s" % release.get("tag_name"), file=sys.stderr)
+            for a in assets:
+                print(a["browser_download_url"])
+            break
 except Exception as e:
-    pass' || true)
+    print("  WARNING: could not parse release list: %s" % e, file=sys.stderr)' || true)
   if [ -z "$urls" ]; then
     echo "WARNING: no rpm assets listed for $repo (network error or no release), skipping"
   fi
@@ -74,7 +89,9 @@ download_one() {
     return 0
   fi
   rm -f "$target" "$temp"
-  if ! curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 \
+  if ! curl -fsSL --connect-timeout 8 --max-time 120 \
+      --speed-time 30 --speed-limit 1024 \
+      --retry 5 --retry-all-errors --retry-delay 3 \
       "${curl_auth[@]}" -o "$temp" "$url"; then
     echo "WARNING: failed to download $fname, skipping" >&2
     rm -f "$temp"

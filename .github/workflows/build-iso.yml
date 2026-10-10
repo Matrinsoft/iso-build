@@ -39,7 +39,7 @@ jobs:
               dnf install -y -q --setopt=install_weak_deps=False \
                 --setopt=minrate=0 --setopt=timeout=60 --setopt=retries=10 \
                 livecd-tools createrepo_c jq
-              bash build-iso.sh
+              ISO_CONFIG=configs/installable.config bash build-iso.sh
               ISO=$(ls -t *.iso | head -1)
               echo "Produced ISO: $ISO ($(du -h "$ISO" | cut -f1))"
               cp "$ISO" /out/
