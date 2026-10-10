@@ -33,13 +33,24 @@ sed -i "s|repo --name=lingmo --baseurl=.*|repo --name=lingmo --baseurl=file://$R
 
 # The self-built packages are a snapshot of the Fedora sources and are often
 # *older* than what Fedora 45 ships today (e.g. gnome-shell 51~rc vs 51.0), and
-# a repo's --cost only breaks ties between equal versions - it does not
-# override the version comparison. To actually use the self-built packages,
-# hide their Fedora counterparts from the two Fedora repositories.
-if [ "${FORCE_SELF_BUILT:-1}" = "1" ]; then
+# a repository's --cost only breaks ties between equal versions - it does not
+# override the version comparison. To actually use a self-built package,
+# hide its Fedora counterpart from the two Fedora repositories.
+#
+# Only the packages whose *source* package is listed in FORCE_SELF_BUILT_PKGS
+# are forced; everything else stays on Fedora's current packages (forcing the
+# whole snapshot also pushed systemd/glib2 back to old pre-releases, which did
+# not boot).
+FORCE_SELF_BUILT_PKGS="${FORCE_SELF_BUILT_PKGS:-gnome-shell,gnome-control-center}"
+if [ "${FORCE_SELF_BUILT:-1}" = "1" ] && [ -n "$FORCE_SELF_BUILT_PKGS" ]; then
+  patterns=$(printf '%s' "$FORCE_SELF_BUILT_PKGS" | tr ',' '|')
+  # %{SOURCERPM} of every local rpm -> the source package it was built from;
+  # "name-<digit>" avoids matching e.g. gnome-shell-extensions for gnome-shell.
   force_list=$(find "$REPO_DIR" -maxdepth 1 -name '*.rpm' -print0 2>/dev/null \
-    | xargs -0 -r rpm -qp --qf '%{NAME}\n' 2>/dev/null \
+    | xargs -0 -r rpm -qp --qf '%{SOURCERPM}\t%{NAME}\n' 2>/dev/null \
+    | awk -F'\t' -v pat="$patterns" '$1 ~ "^(" pat ")-[0-9]" { print $2 }' \
     | sort -u | paste -sd, -)
+
   if [ -n "${FORCE_SELF_BUILT_SKIP:-}" ]; then
     # Escape hatch: let Fedora win for the listed packages, e.g. when a Fedora
     # package needs a newer version than the snapshot provides.
@@ -47,14 +58,15 @@ if [ "${FORCE_SELF_BUILT:-1}" = "1" ]; then
       | grep -vxF -f <(printf '%s' "$FORCE_SELF_BUILT_SKIP" | tr ',' '\n') \
       | paste -sd, -)
   fi
+
   if [ -n "$force_list" ]; then
-    echo "=== Forcing self-built packages over Fedora's ($(printf '%s' "$force_list" | tr ',' '\n' | wc -l) names)"
+    echo "=== Forcing self-built packages over Fedora's: $force_list"
     sed -i -E "s|^(repo --name=fedora[^ ]* .*)$|\1 --excludepkgs=$force_list|" "$ROOT/lingmo-live.ks"
   else
-    echo "WARNING: no self-built RPMs found, nothing to force" >&2
+    echo "WARNING: none of '$FORCE_SELF_BUILT_PKGS' found in $REPO_DIR, nothing to force" >&2
   fi
 else
-  echo "=== FORCE_SELF_BUILT=0: letting Fedora's versions win"
+  echo "=== Not forcing self-built packages (FORCE_SELF_BUILT=$FORCE_SELF_BUILT, list='$FORCE_SELF_BUILT_PKGS')"
 fi
 
 # Self-built rpms are unsigned; make livecd-creator's imgcreate dnf backend

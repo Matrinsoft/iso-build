@@ -93,11 +93,14 @@ make defconfig KCONFIG_CONFIG=.config.installable && \
 而 kickstart 里 `repo --cost=1` 只在**版本相同**时打破平手，不会覆盖版本比较——所以默认情况下 Fedora 的新版本会胜出，
 自建的 shell/控制中心改动不会进镜像。
 
-`scripts/build-iso.sh` 默认会从两个 Fedora 仓库里 `--excludepkgs` 掉本地仓库提供的所有包名
-（`rpm -qp --qf '%{NAME}'` 生成列表），从而强制使用自建包。相关开关：
+`scripts/build-iso.sh` 会把指定自建包的 Fedora 同名包从两个 Fedora 仓库里 `--excludepkgs` 掉，从而强制使用自建包。
+**默认只强制 `gnome-shell` + `gnome-control-center`**（其余全部用 Fedora 当前包——整份快照一起压回旧版本时，
+systemd/glib2 等基础组件会退回 pre-release，实测无法启动）。相关开关：
 
-- `FORCE_SELF_BUILT=0`：关闭强制（恢复 Fedora 优先，用于对比）。
-- `FORCE_SELF_BUILT_SKIP=systemd,glib2,...`：对列出的包放行 Fedora 版本（依赖冲突时的逃生口）。
+- `FORCE_SELF_BUILT_PKGS=gnome-shell,gnome-control-center[,mutter,...]`：按**源码包名**指定要强制的组件
+  （自动带上它的所有子包，例如 `gnome-shell-common`）。
+- `FORCE_SELF_BUILT=0`：完全关闭强制（全部用 Fedora 包，用于对比）。
+- `FORCE_SELF_BUILT_SKIP=<名字列表>`：对个别二进制包放行 Fedora 版本（依赖冲突时的逃生口）。
 
 注意：强制旧版本可能让“按新版本编译的 Fedora 包”依赖无法满足，构建会**明确报错**（而不是静默混用）。
 
