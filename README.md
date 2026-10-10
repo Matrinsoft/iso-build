@@ -6,8 +6,12 @@
 
 ## 产物
 
-- **ISO 命名格式**：`lingmoOS_5_Unstable_<YYMMDD>_amd64.iso`（例如 `lingmoOS_5_Unstable_260905_amd64.iso`）
-- **发布**：每次 push 到 `main` 或手动触发，自动构建 ISO 并发布到 GitHub Release，tag 为 `iso-<YYYYMMDD>`。
+- **ISO 命名格式**：`lingmoOS_5_Unstable_<类型>_<YYMMDD>_amd64.iso`（例如
+  `lingmoOS_5_Unstable_desktop_261010_amd64.iso`、`lingmoOS_5_Unstable_installable_261010_amd64.iso`）。
+  类型取自配置文件名的 `<类型>.config`，同一天的不同类型镜像互不覆盖。
+- **发布**：每次 push 到 `main`（默认构建 desktop）或手动触发，自动构建 ISO 并发布到 GitHub Release，
+  tag 为 `iso-<YYYYMMDD>`；同一天重新构建时只清理**同类型**的旧资产。
+  手动构建指定类型：`gh workflow run build-iso.yml -f iso_config=installable`（可选 `desktop`/`installable`）。
 - **分片**：GitHub Release 单个文件上限 2 GiB。若 ISO 超过 2 GiB，会自动用 `split` 分片上传，每个分片 `~1.9 GiB`。合并方式：`cat lingmoOS_5_Unstable_*.iso.part* > lingmoOS_5_Unstable_<date>_amd64.iso`。
 
 ## 快速开始（本地）
@@ -27,7 +31,8 @@ make defconfig KCONFIG_CONFIG=.config.installable && \
 
 > `livecd-creator` 需要 root（挂载 loop、chroot），约 8–10 GB 磁盘。
 > CI 不做 `make sync`；`bash build-iso.sh` 用 `$ISO_CONFIG` 指定配置，
-> **当前 CI 构建的是 Installable（Anaconda WebUI 安装器）镜像**。
+> **push 默认构建 `configs/desktop.config`（GNOME 桌面 live 镜像）**，
+> 安装器镜像用 `gh workflow run build-iso.yml -f iso_config=installable`。
 
 ## make 目标
 
@@ -66,7 +71,7 @@ make defconfig KCONFIG_CONFIG=.config.installable && \
 | Desktop live | `10-packages-desktop` + `20-post-desktop` | GNOME 桌面、GDM 自动登录（`configs/desktop.config`，`make defconfig` 默认） |
 | Server | `10-packages-server` + `20-post-server` + `20-post-common` | 无图形界面 |
 | Minimal | `10-packages-minimal` + `20-post-minimal` + `20-post-common` | 最小集 |
-| Installable | `10-packages-installable` + `20-post-installable` + `20-post-common` | Anaconda WebUI 安装器镜像（anaconda + anaconda-webui + sshd，multi-user 启动）；**CI 默认构建此类型**（`configs/installable.config`） |
+| Installable | `10-packages-installable` + `20-post-installable` + `20-post-common` | Anaconda WebUI 安装器镜像（anaconda + anaconda-webui + sshd，multi-user 启动，**无桌面**）；`configs/installable.config` |
 
 片段以一个空行拼接（`\n\n`），DESKTOP 渲染结果与拆分前的单体 kickstart 逐字节一致。
 渲染 token 为 `@UPPER_CASE@`（`SYS_LANG`/`ROOT_SIZE_MB`/`LIVE_USER` 等）。

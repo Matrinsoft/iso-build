@@ -27,6 +27,8 @@ repo --name=lingmo --baseurl=file:///tmp/lingmo-repo --cost=1
 @core
 @standard
 @networkmanager-submodules
+@fonts
+@multimedia
 
 # --- SELinux ---
 # policycoreutils ships setfiles, which %post uses to label the rootfs
@@ -47,10 +49,12 @@ dracut
 # initrd0.img is silently missing from the ISO.
 dracut-live
 # livenet's depends() includes "network" (70network/40network lives in
-# dracut-network). Without it, dracut fails with
+# dracut-network) and "url-lib" (needs the curl binary, already pulled in).
+# Without dracut-network, dracut fails with
 # "Module 'livenet' depends on module 'network', which can't be installed".
 dracut-network
-# url-lib's check() requires the curl binary (livenet depends on url-lib).
+# url-lib's check() requires the curl binary (livenet depends on url-lib);
+# declare it explicitly instead of relying on a transitive pull-in.
 curl
 dracut-config-generic
 grub2-efi-x64
@@ -67,21 +71,101 @@ plymouth-theme-spinner
 systemd
 systemd-udev
 NetworkManager
+NetworkManager-wifi
+NetworkManager-bluetooth
 firewalld
 polkit
 upower
 
+# --- Audio / video stack ---
+pipewire
+pipewire-pulseaudio
+pipewire-alsa
+wireplumber
+
+# --- Mesa (from Fedora repo) ---
+mesa-dri-drivers
+mesa-libgbm
+mesa-vulkan-drivers
+
 # --- Lingmo OS identity ---
 lingmo-release
 
-# --- Installer payload (Anaconda WebUI) ---
-# Runtime dependencies are pulled in by dnf automatically; the WebUI serves
-# the installer on localhost:8080 and via sshd for remote machines.
-anaconda
-anaconda-webui
-openssh-server
-# input device/keyboard tables used by anaconda's language & keyboard steps
-langtable
+# --- Self-built GNOME packages (overrides Fedora's) ---
+accountsservice
+adobe-source-code-pro-fonts
+avahi
+baobab
+dconf
+decibels
+fprintd
+gdm
+geoclue2
+gjs
+glib-networking
+glib2
+gnome-backgrounds
+gnome-bluetooth
+gnome-boxes
+gnome-browser-connector
+gnome-calculator
+gnome-calendar
+gnome-characters
+gnome-clocks
+gnome-color-manager
+gnome-connections
+gnome-contacts
+gnome-control-center
+gnome-disk-utility
+gnome-epub-thumbnailer
+gnome-font-viewer
+gnome-initial-setup
+gnome-logs
+gnome-maps
+gnome-remote-desktop
+gnome-session
+gnome-settings-daemon
+gnome-shell
+gnome-software
+gnome-system-monitor
+gnome-text-editor
+gnome-user-docs
+gnome-weather
+gsettings-desktop-schemas
+gtk4
+gvfs
+libadwaita
+localsearch
+mutter
+nautilus
+PackageKit
+ptyxis
+rygel
+sane-backends
+showtime
+simple-scan
+sushi
+tinysparql
+vte291
+xdg-desktop-portal
+xdg-desktop-portal-gnome
+xdg-desktop-portal-gtk
+xdg-user-dirs-gtk
+yelp
+
+# --- Components intentionally taken from Fedora repo (not self-built) ---
+gst-thumbnailers
+gnome-user-share
+loupe
+snapshot
+librsvg2
+papers
+
+# --- Extra desktop essentials ---
+gnome-terminal
+gnome-tweaks
+firefox
+network-manager-applet
 
 %end
 
@@ -91,21 +175,47 @@ if [ -f /usr/lib/os-release ]; then
   sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="Lingmo OS 5 (Unstable)"/' /usr/lib/os-release || true
 fi
 
-# Installer image: boot to a text target. anaconda-webui serves its UI on
-# localhost:8080; instructions are printed to the console by the installer
-# itself. No GDM/liveuser on this image type.
-systemctl set-default multi-user.target
+# Enable graphical boot target
+systemctl set-default graphical.target
+
+# Enable GDM
+systemctl enable gdm
+
+# --- GDM: keep kmscon off tty1 or autologin gets replaced by a greeter ---
+# kmscon.service is pulled in by multi-user.target and claims tty1 at
+# the moment GDM registers its display. gdm.service only Conflicts with
+# getty@tty1 and kmsconvt@tty1, so kmscon.service survives; the VT/uevent
+# wakes the display factory, which builds a greeter session on top of
+# the liveuser session (the first one dies with "Session never
+# registered") and the login screen permanently replaces the desktop.
+# A/B test on the 20260928 image: with these two units masked, no
+# greeter session is ever created and the desktop stays up.
+systemctl disable kmscon.service
+systemctl disable kmsconvt@tty1.service
 
 # Enable NetworkManager
 systemctl enable NetworkManager
 
-# Remote access for the WebUI (ssh port + anaconda's own listener)
-systemctl enable sshd
-systemctl enable firewalld
+# --- Live user: create the account GDM will auto-login ---
+# The kickstart `user` command is silently ignored by livecd-creator, so
+# without this the image has no login account at all (root is locked) and
+# autologin fails: GDM falls back to a getty and the ttys accept nothing.
+if ! id liveuser >/dev/null 2>&1; then
+  useradd -m -u 1000 -G wheel liveuser
+  echo 'liveuser:liveuser' | chpasswd
+fi
 
-%end
+# --- GDM: auto-login the live user (standard live-image behavior) ---
+# The image has no other account (root is locked), so without this the
+# system is unusable: GDM shows an empty user list and the ttys accept
+# no login. Overwriting custom.conf is safe: every key in it is optional
+# and WaylandEnable defaults to true.
+cat > /etc/gdm/custom.conf <<'EOF'
+[daemon]
+AutomaticLoginEnable=true
+AutomaticLogin=liveuser
+EOF
 
-%post
 # --- SELinux: label the rootfs (MANDATORY for boot) ---
 # livecd-creator never runs setfiles, so the image would ship with zero
 # security.selinux xattrs (every file unlabeled_t). At switch-root the
@@ -129,4 +239,5 @@ case "$ctx" in
   *) echo "ERROR: SELinux labeling failed: /usr/lib/systemd/systemd -> '$ctx'" >&2
      exit 1 ;;
 esac
+
 %end

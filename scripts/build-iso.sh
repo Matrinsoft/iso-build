@@ -6,7 +6,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ORG="${GITHUB_ORG:-Matrinsoft}"
-ISO_NAME="lingmoOS_5_Unstable_$(date +%y%m%d)_amd64"
+ISO_TYPE="${ISO_TYPE:-desktop}"
+ISO_NAME="lingmoOS_5_Unstable_${ISO_TYPE}_$(date +%y%m%d)_amd64"
 REPO_DIR="${REPO_DIR:-/var/cache/lingmo-repo}"
 WORK_DIR="$ROOT"
 

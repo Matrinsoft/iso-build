@@ -15,7 +15,13 @@ if [ ! -f "$CONFIG_FILE" ]; then
   exit 1
 fi
 
-echo "=== Rendering kickstart from $CONFIG_FILE ==="
+# The type is carried into the ISO file name, so that the images of one day
+# do not overwrite each other in the release of that day.
+ISO_TYPE="$(basename "$CONFIG_FILE")"
+ISO_TYPE="${ISO_TYPE%.config}"
+export ISO_TYPE
+
+echo "=== Rendering kickstart from $CONFIG_FILE (type: $ISO_TYPE) ==="
 python3 lib/render-ks.py --config "$CONFIG_FILE"
 
 exec bash scripts/build-iso.sh "$@"
