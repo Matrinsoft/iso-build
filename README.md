@@ -94,7 +94,7 @@ make defconfig KCONFIG_CONFIG=.config.installable && \
 自建的 shell/控制中心改动不会进镜像。
 
 `scripts/build-iso.sh` 会把指定自建包的 Fedora 同名包从两个 Fedora 仓库里 `--excludepkgs` 掉，从而强制使用自建包。
-**默认只强制 `gnome-shell` + `gnome-control-center`**（其余全部用 Fedora 当前包——整份快照一起压回旧版本时，
+**默认强制 `gnome-shell` + `gnome-control-center` + `mutter`**（其余全部用 Fedora 当前包——整份快照一起压回旧版本时，
 systemd/glib2 等基础组件会退回 pre-release，实测无法启动）。相关开关：
 
 - `FORCE_SELF_BUILT_PKGS=gnome-shell,gnome-control-center[,mutter,...]`：按**源码包名**指定要强制的组件

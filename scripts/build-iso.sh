@@ -41,7 +41,7 @@ sed -i "s|repo --name=lingmo --baseurl=.*|repo --name=lingmo --baseurl=file://$R
 # are forced; everything else stays on Fedora's current packages (forcing the
 # whole snapshot also pushed systemd/glib2 back to old pre-releases, which did
 # not boot).
-FORCE_SELF_BUILT_PKGS="${FORCE_SELF_BUILT_PKGS:-gnome-shell,gnome-control-center}"
+FORCE_SELF_BUILT_PKGS="${FORCE_SELF_BUILT_PKGS:-gnome-shell,gnome-control-center,mutter}"
 if [ "${FORCE_SELF_BUILT:-1}" = "1" ] && [ -n "$FORCE_SELF_BUILT_PKGS" ]; then
   patterns=$(printf '%s' "$FORCE_SELF_BUILT_PKGS" | tr ',' '|')
   # %{SOURCERPM} of every local rpm -> the source package it was built from;
