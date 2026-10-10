@@ -7,7 +7,13 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ORG="${GITHUB_ORG:-Matrinsoft}"
 ISO_TYPE="${ISO_TYPE:-desktop}"
-ISO_NAME="lingmoOS_5_Unstable_${ISO_TYPE}_$(date +%y%m%d)_amd64"
+ISO_STEM="lingmoOS_5_Unstable"
+ISO_DATE="$(date +%y%m%d)"
+# The file name carries the ISO type so that the desktop and installer images
+# of one day do not collide; the *volume label* has to stay within the 32
+# character CD label limit enforced by livecd-creator.
+ISO_NAME="${ISO_STEM}_${ISO_TYPE}_${ISO_DATE}_amd64"
+ISO_LABEL="${ISO_STEM}_${ISO_DATE}"
 REPO_DIR="${REPO_DIR:-/var/cache/lingmo-repo}"
 WORK_DIR="$ROOT"
 
@@ -31,7 +37,7 @@ python3 "$ROOT/lib/patch-imgcreate.py"
 
 livecd-creator \
   --config="$ROOT/lingmo-live.ks" \
-  --fslabel="${ISO_NAME}" \
+  --fslabel="${ISO_LABEL}" \
   --title="Lingmo OS 5 (Unstable)" \
   --cache=/tmp/lmc-cache \
   --verbose
