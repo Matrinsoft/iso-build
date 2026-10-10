@@ -87,6 +87,20 @@ make defconfig KCONFIG_CONFIG=.config.installable && \
   只取 `*.fc45.*` / `*.noarch.rpm`，排除 `*.src.rpm`、`debuginfo`、`debugsource`。
 - 结果缓存在 `$REPO_DIR/.api-cache/<repo>.json`，下载失败的包只告警不中断构建。
 
+## 自建包优先级（`FORCE_SELF_BUILT`）
+
+自建包是 Fedora 源码的快照，常常**比 Fedora 45 当前版本旧**（例如自建 `gnome-shell 51~rc` vs Fedora `51.0`），
+而 kickstart 里 `repo --cost=1` 只在**版本相同**时打破平手，不会覆盖版本比较——所以默认情况下 Fedora 的新版本会胜出，
+自建的 shell/控制中心改动不会进镜像。
+
+`scripts/build-iso.sh` 默认会从两个 Fedora 仓库里 `--excludepkgs` 掉本地仓库提供的所有包名
+（`rpm -qp --qf '%{NAME}'` 生成列表），从而强制使用自建包。相关开关：
+
+- `FORCE_SELF_BUILT=0`：关闭强制（恢复 Fedora 优先，用于对比）。
+- `FORCE_SELF_BUILT_SKIP=systemd,glib2,...`：对列出的包放行 Fedora 版本（依赖冲突时的逃生口）。
+
+注意：强制旧版本可能让“按新版本编译的 Fedora 包”依赖无法满足，构建会**明确报错**（而不是静默混用）。
+
 ## 源码同步（make sync）
 
 `scripts/sync-repos.sh` 使用官方 Android [repo 工具](https://github.com/GerritCodeReview/git-repo)（完整克隆到 `../gnome-source/.repo-tools/`）：

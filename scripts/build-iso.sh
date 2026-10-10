@@ -31,6 +31,32 @@ echo "rpm pkgverify_level: $(rpm --eval '%_pkgverify_level')"
 # Point the kickstart's lingmo repo at the freshly built local repo
 sed -i "s|repo --name=lingmo --baseurl=.*|repo --name=lingmo --baseurl=file://$REPO_DIR --cost=1|" "$ROOT/lingmo-live.ks"
 
+# The self-built packages are a snapshot of the Fedora sources and are often
+# *older* than what Fedora 45 ships today (e.g. gnome-shell 51~rc vs 51.0), and
+# a repo's --cost only breaks ties between equal versions - it does not
+# override the version comparison. To actually use the self-built packages,
+# hide their Fedora counterparts from the two Fedora repositories.
+if [ "${FORCE_SELF_BUILT:-1}" = "1" ]; then
+  force_list=$(find "$REPO_DIR" -maxdepth 1 -name '*.rpm' -print0 2>/dev/null \
+    | xargs -0 -r rpm -qp --qf '%{NAME}\n' 2>/dev/null \
+    | sort -u | paste -sd, -)
+  if [ -n "${FORCE_SELF_BUILT_SKIP:-}" ]; then
+    # Escape hatch: let Fedora win for the listed packages, e.g. when a Fedora
+    # package needs a newer version than the snapshot provides.
+    force_list=$(printf '%s' "$force_list" | tr ',' '\n' \
+      | grep -vxF -f <(printf '%s' "$FORCE_SELF_BUILT_SKIP" | tr ',' '\n') \
+      | paste -sd, -)
+  fi
+  if [ -n "$force_list" ]; then
+    echo "=== Forcing self-built packages over Fedora's ($(printf '%s' "$force_list" | tr ',' '\n' | wc -l) names)"
+    sed -i -E "s|^(repo --name=fedora[^ ]* .*)$|\1 --excludepkgs=$force_list|" "$ROOT/lingmo-live.ks"
+  else
+    echo "WARNING: no self-built RPMs found, nothing to force" >&2
+  fi
+else
+  echo "=== FORCE_SELF_BUILT=0: letting Fedora's versions win"
+fi
+
 # Self-built rpms are unsigned; make livecd-creator's imgcreate dnf backend
 # accept them (nocrypto tsflag + gpgcheck=0).
 python3 "$ROOT/lib/patch-imgcreate.py"
